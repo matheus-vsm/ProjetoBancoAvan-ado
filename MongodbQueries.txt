@@ -1,0 +1,159 @@
+Ex 1-
+db.student.aggregate([
+  {
+    $lookup: {
+      from: "advisor",
+      localField: "id",
+      foreignField: "s_id",
+      as: "advisor_info"
+    }
+  },
+  {
+    $unwind: "$advisor_info"
+  },
+  {
+    $lookup: {
+      from: "instructor",
+      localField: "advisor_info.i_id",
+      foreignField: "id",
+      as: "instructor_info"
+    }
+  },
+  {
+    $unwind: "$instructor_info"
+  },
+  {
+    $lookup: {
+      from: "teaches",
+      localField: "instructor_info.id",
+      foreignField: "id",
+      as: "teaches_info"
+    }
+  },
+  {
+    $unwind: "$teaches_info"
+  },
+  {
+    $lookup: {
+      from: "section",
+      localField: "teaches_info.course_id",
+      foreignField: "course_id",
+      as: "section_info"
+    }
+  },
+  {
+    $unwind: "$section_info"
+  },
+  {
+    $lookup: {
+      from: "course",
+      localField: "section_info.course_id",
+      foreignField: "course_id",
+      as: "course_info"
+    }
+  },
+  {
+    $unwind: "$course_info"
+  },
+  {
+    $project: {
+      _id: 0,
+      student_name: "$name",
+      instructor_name: "$instructor_info.name",
+      course_title: "$course_info.title"
+    }
+  },
+  {
+    $group: {
+      _id: { student_name: "$student_name", instructor_name: "$instructor_name", course_title: "$course_title" }
+    }
+  }
+]);
+
+
+Ex 2-
+db.instructor.aggregate([
+    {
+        $lookup: {
+            from: "teaches",
+            localField: "id",
+            foreignField: "id",
+            as: "teaches"
+        }
+    },
+    {
+        $unwind: "$teaches"
+    },
+    {
+        $lookup: {
+            from: "section",
+            localField: "teaches.course_id",
+            foreignField: "course_id",
+            as: "section"
+        }
+    },
+    {
+        $unwind: "$section"
+    },
+    {
+        $project: {
+            _id: 0,
+            name: "$name",
+            building: "$section.building",
+            room_number: "$section.room_number"
+        }
+    },
+    {
+        $group: {
+            _id: {
+                name: "$name",
+                building: "$building",
+                room_number: "$room_number"
+            }
+        }
+    },
+    {
+        $project: {
+            _id: 0,
+            name: "$_id.name",
+            building: "$_id.building",
+            room_number: "$_id.room_number"
+        }
+    }
+]);
+
+
+
+Ex 3 -
+db.department.aggregate([
+  {
+    $lookup: {
+      from: "student",
+      localField: "name",
+      foreignField: "dept_name",
+      as: "students_dep"
+    }
+  },
+  {
+    $unwind: "$students_dep"
+  },
+  {
+    $lookup: {
+      from: "instructor",
+      localField: "name",
+      foreignField: "dept_name",
+      as: "instructors_dep"
+    }
+  },
+  {
+    $unwind: "$instructors_dep"
+  },
+  {
+    $group: {
+      _id: "$name",
+      budget: { $first: "$budget" },
+      student_count: { $sum: 1 },
+      avg_instructor_salary: { $avg: "$instructors_dep.salary" }
+    }
+  }
+]);
